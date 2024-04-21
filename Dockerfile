@@ -1,21 +1,18 @@
-FROM python:3.9-alpine as base
+FROM python:bullseye
 
-RUN apk --update add ffmpeg
+ARG userUID=1000
 
-FROM base as builder
+RUN  DEBIAN_FRONTEND=noninteractive apt update && apt install -y ffmpeg
 
-WORKDIR /install
-COPY requirements.txt /requirements.txt
+RUN useradd -m -u $userUID zotify_usr
+USER zotify_usr
 
-RUN apk add gcc libc-dev zlib zlib-dev jpeg-dev
-RUN pip install --prefix="/install" -r /requirements.txt
+WORKDIR /home/zotify_usr
 
-FROM base
+COPY requirements.txt .
+COPY zotify ./zotify
 
-COPY --from=builder /install /usr/local/lib/python3.9/site-packages
-RUN mv /usr/local/lib/python3.9/site-packages/lib/python3.9/site-packages/* /usr/local/lib/python3.9/site-packages/
+RUN pip install -r ~/requirements.txt
+RUN mkdir ./tmp ./songs
 
-COPY zotify /app/zotify
-
-WORKDIR /app
 CMD ["python3", "-m", "zotify"]
